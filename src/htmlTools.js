@@ -13,53 +13,49 @@ function HtmlTools(httpManager, maxPages, originalUrl){
         return "a[href^='/'],a[href^='www."+rootUrl+"'],a[href^='http://"+rootUrl+"'],a[href^='http://www."+rootUrl+"'],a[href^='https://www."+rootUrl+"'],a[href^='https://"+rootUrl+"'],a[href^='"+rootUrl+"']"
     };
 
-    this.collectLinksOnPage = function($, rootUrl){
-      var hashtable = {};          
-      var currentRelative = '';
-      var newDomain = '';      
-      var allUrls = $(this.getFilter(rootUrl));      
-      var originalHost = this.originalHost;
-        allUrls.each(function() {
-        currentRelative = url.resolve(rootUrl,$(this).attr('href'));
-        newDomain = url.parse(currentRelative).host;        
-        if (typeof(hashtable.currentRelative) === 'undefined'
-            && currentRelative!='/'
-            && currentRelative!=''
-            && newDomain === originalHost){ //Add it only if it isn't there already...
-
-            hashtable[currentRelative]=currentRelative;
-            
-        }        
-    });
-    return Object.keys(hashtable);
-    };
-
-    this.visitedElement = function(element){
-        return typeof(this.visitedList[element]) !== 'undefined';
+    this.visitedElement = function(allElements, element){
+        return typeof(allElements[element]) !== 'undefined';
     }
 
-    this.recursiveTraversion = function(url){        
-       
+    this.collectLinksOnPage = function($, rootUrl){
+        var hashtable = {}; //Hashtable that will contain all relative paths that we have on the current page
+        var currentRelPath = ''; //temp var
+        var newDomain = ''; //what's the domain of the new relative path?
+        var allUrls = $(this.getFilter(rootUrl));       //All rel urls on current page.        
+            for (var i=0;i<allUrls.length;i++){
+            currentRelPath = url.resolve(rootUrl,$(allUrls[i]).attr('href')); //Resolve the value of the href attribute of the <a> tag on this page.
+            newDomain = url.parse(currentRelPath).host;        //new domain of the new url found
+            if (!this.visitedElement(hashtable, currentRelPath) //Have we visited the page already?            
+                && currentRelPath!='' //not an empty string
+                && newDomain === this.originalHost //We are in the same domain
+                ){ 
+                hashtable[currentRelPath]=currentRelPath; //Add to hashtable.            
+            }        
+        };
+        return Object.keys(hashtable); //Return all keys of hashtable. (distincted URLS of this page.)
+    };  
+
+    this.recursiveTraversion = function(url){ //Recursively traverse the current URL.
         httpManager(url, (error,response,html)=>{                 
             if (error){
-                console.log('error happened: '+error);
+                console.log('error happened: '+error); //If there was an error, log and return.
                 return;
             }         
-            
+
             var $ = cheerio.load(html); //Load the HTML file 
             var allRelative = this.collectLinksOnPage($, url); //Get all links on current page
-            var currentElement; //Set a temp element
+            var currentElement; //temp element
             for (var i=0;i<allRelative.length;i++){
-                currentElement = allRelative[i];                  
-                
-                if (!this.visitedElement(currentElement)){
-                    if (this.visitedCounter == this.maxPages)  {                    
+
+                currentElement = allRelative[i];
+                if (!this.visitedElement(this.visitedList, currentElement)){
+                    if (this.visitedCounter == this.maxPages)  { //If we've reached the maximum amount of pages, exit.                    
                         process.exit(0);
                     }
-                    this.visitedList[currentElement] = currentElement; 
-                    this.visitedCounter++;
-                    console.log(currentElement);
-                    this.recursiveTraversion(currentElement);                                
+                    this.visitedList[currentElement] = currentElement;  //Set the hashtable object
+                    this.visitedCounter++; //Add to total counter.
+                    console.log(currentElement); //Log the URL.
+                    this.recursiveTraversion(currentElement);   //Recursively countinue looking                              
                 }            
             }
         
