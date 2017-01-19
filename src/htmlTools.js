@@ -3,51 +3,57 @@ var utils = require('./utilities');
 var url = require('url');
 
 function HtmlTools(httpManager, maxPages, originalUrl){
-    this.maxPages = maxPages;
-    this.visitedList = [];
-    this.visitedCounter = 0;
-    this.httpManager = httpManager;
-    this.originalUrl = originalUrl;
-    this.originalHostname = url.parse(originalUrl).hostname;
+    this.maxPages = maxPages; //Maximum pages to traverse
+    this.visitedList = {}; //a hashtable that contains all visited sites. Using an object for O(1) complexity.
+    this.visitedCounter = 0; //So won't have to count object's keys each time.
+    this.httpManager = httpManager; //injected http manager. Not accessing directly for testing and mocking purposes.
+    this.originalUrl = originalUrl; //the original URL from which everything began.
+    this.originalHost = url.parse(originalUrl).host; //The original host of the URL.
+    this.getFilter = function(rootUrl){ //returns the filter of the href elements in the DOM
+        return "a[href^='/'],a[href^='www."+rootUrl+"'],a[href^='http://"+rootUrl+"'],a[href^='http://www."+rootUrl+"'],a[href^='https://www."+rootUrl+"'],a[href^='https://"+rootUrl+"'],a[href^='"+rootUrl+"']"
+    };
+
     this.collectLinksOnPage = function($, rootUrl){
-        var hashtable = {};    
-        var toReturn = [];
+      var hashtable = {};          
       var currentRelative = '';
-      var newDomain = '';
-      //var allUrls = $("a[href^='/'],a[href^='www."+absoluteRoot+"'],a[href^='http://"+absoluteRoot+"'],a[href^='http://www."+absoluteRoot+"'],a[href^='https://www."+absoluteRoot+"'],a[href^='https://"+absoluteRoot+"'],a[href^='"+absoluteRoot+"']");
-      var allUrls = $("a[href^='/'],a[href^='www."+rootUrl+"'],a[href^='http://"+rootUrl+"'],a[href^='http://www."+rootUrl+"'],a[href^='https://www."+rootUrl+"'],a[href^='https://"+rootUrl+"'],a[href^='"+rootUrl+"']");
-      //var allUrls = $("a[href^='/']");
-      var originalHostname = this.originalHostname;
+      var newDomain = '';      
+      var allUrls = $(this.getFilter(rootUrl));      
+      var originalHost = this.originalHost;
         allUrls.each(function() {
         currentRelative = url.resolve(rootUrl,$(this).attr('href'));
-        newDomain = url.parse(rootUrl).hostname;        
-        if (typeof(toReturn.currentRelative) === 'undefined'
+        newDomain = url.parse(currentRelative).host;        
+        if (typeof(hashtable.currentRelative) === 'undefined'
             && currentRelative!='/'
             && currentRelative!=''
-            && newDomain === originalHostname){ //Add it only if it isn't there already...
+            && newDomain === originalHost){ //Add it only if it isn't there already...
 
             hashtable[currentRelative]=currentRelative;
-            toReturn.push(currentRelative);
+            
         }        
     });
-    return toReturn;
+    return Object.keys(hashtable);
     };
+
+    this.visitedElement = function(element){
+        return typeof(this.visitedList[element]) !== 'undefined';
+    }
 
     this.recursiveTraversion = function(url){        
        
         httpManager(url, (error,response,html)=>{                 
-        if (!error){            
-            //html = '<html><head></head><body> <a href="http://test/page1" /> <a href="/page2" /> <a href="page3" /> </body></html>'
-            var $ = cheerio.load(html);
-            var allRelative = this.collectLinksOnPage($, url);
-            var currentElement;
+            if (error){
+                console.log('error happened: '+error);
+                return;
+            }         
+            
+            var $ = cheerio.load(html); //Load the HTML file 
+            var allRelative = this.collectLinksOnPage($, url); //Get all links on current page
+            var currentElement; //Set a temp element
             for (var i=0;i<allRelative.length;i++){
                 currentElement = allRelative[i];                  
-                // if (!currentElement.startsWith(url)){
-                //     currentElement = url+currentElement;
-                // }
-                if (typeof(this.visitedList[currentElement]) === 'undefined'){
-                    if (this.visitedCounter == this.maxPages)      {                    
+                
+                if (!this.visitedElement(currentElement)){
+                    if (this.visitedCounter == this.maxPages)  {                    
                         process.exit(0);
                     }
                     this.visitedList[currentElement] = currentElement; 
@@ -58,10 +64,7 @@ function HtmlTools(httpManager, maxPages, originalUrl){
             }
         
         }
-        else{
-            console.log('error happened: '+error);
-        }
-    });
+      );
     }
 }
 
