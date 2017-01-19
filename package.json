@@ -4,7 +4,8 @@
   "description": "",
   "main": "./src/crawler.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start":"echo Run the application like that: node ./src/crawler.js HOST MAX_PAGES && exit 0"
   },
   "author": "Lev Perlman",
   "license": "ISC",

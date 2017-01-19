@@ -2,7 +2,9 @@
 var HtmlTools = require('./htmlTools');
 var utils = require('./utilities');
 
-utils.validateInput(process.argv);
+if(!utils.validateInput(process.argv)){
+    process.exit(-1);
+}
 
 const url = process.argv[2];
 const maxPages = process.argv[3] ? process.argv[3] : 100;
