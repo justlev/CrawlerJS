@@ -1,3 +1,5 @@
+var request = require('request');
+
 module.exports={
     validateInput:function(args){
         if (args.length<=2){
@@ -5,5 +7,9 @@ module.exports={
                     return false;
             }
             return true;
+    },
+
+    requestWrapper:function(url, callback){
+       request(url, callback);
     }
 }
