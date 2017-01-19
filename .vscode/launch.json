@@ -12,7 +12,7 @@
             "program": "${workspaceRoot}\\src\\crawler.js",
             "cwd": "${workspaceRoot}",
             "args": [
-                "http://google.com"
+                "http://www.simplesite.com/"
             ]
         },
         {

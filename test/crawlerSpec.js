@@ -12,17 +12,34 @@ describe('HtmlTools', function(){
         //Prepare        
         var rootUrl = "http://test.com/";
         var tools = new htmlTools(request, 500, rootUrl);
-        var html = '<html><head></head><body> <a href="http://test.com/page1" /> <a href="/page2" /> <a href="/page3" /> </body></html>'
+        var html = '<html><head></head><body> <a href="http://test.com/page1" /> <script src="script.js" ></script> <img src="image.jpg" /> <a href="/page2" /> <a href="/page3" /> </body></html>'
         
          var $ = cheerio.load(html);
          var expectedResult=['http://test.com/page1','http://test.com/page2','http://test.com/page3'];
 
         //act
-        var result = tools.collectLinksOnPage($,rootUrl);
+        var result = Object.keys(tools.collectLinksOnPage($,rootUrl));
         
         //assert
-        assert.deepEqual(result,expectedResult,'errorMsg')
+        assert.deepEqual(result,expectedResult)
     });
+
+      it('should look for assets on page', function(){
+        //Prepare        
+        var rootUrl = "http://test.com/";
+        var tools = new htmlTools(request, 500, rootUrl);
+        var html = '<html><head><link href="asdasd.css" /> <script src="headscript.js" ></script></head><body> <a href="http://test.com/page1" /> <img src="image.jpg" />  <script src="script.js" ></script> </body></html>'
+        
+         var $ = cheerio.load(html);
+         var expectedResult={"http://test.com/page1":{"assets":["http://test.com/image.jpg","http://test.com/headscript.js","http://test.com/script.js","http://test.com/asdasd.css"]}}
+
+        //act
+        var result = tools.collectLinksOnPage($,rootUrl);
+        console.log(JSON.stringify(result));
+        //assert
+        assert.deepEqual(result,expectedResult)
+    });
+  
   
       it("already visited table logics should return true if visited the page.", function(){
         //Prepare                         
@@ -47,48 +64,8 @@ describe('HtmlTools', function(){
         const result = tools.visitedElement(element, "yahoo.com");
         
         //assert
-        assert.deepEqual(result,expectedResult,'errorMsg')
+        assert.deepEqual(result,expectedResult);
     });
 
 });
 
-describe('Recursion logics', function(){
-    //General initialization
-    var mockedHttpProvider = (url, callback)=>{
-        switch (url){
-            case 'http://test.com':
-                    callback(null,null,'<html><head></head><body><a href="http://test.com/page1" /></body></html>');
-                    break;
-                case 'http://test.com/page1':
-                    callback(null,null,'<html><head></head><body><a href="/page2" /> </body></html>');
-                    break;
-                case 'http://test.com/page2':
-                    callback(null,null,'<html><head></head><body></body></html>');
-                    break;
-        }
-        
-    };
-    var mockedUrl = 'http://test.com';
-    var tools = new htmlTools(mockedHttpProvider,500,mockedUrl);
-
-    //Async action - recursion logics
-      before(function(done){          
-        tools.recursiveTraversion(mockedUrl);
-        done();            
-    });
-    
-    it('should work recursively', function(){
-        //Object was filled in the 'before' method, let's check if it was filled correctly.
-        
-        //Prepare                                  
-         var expectedResult = {'http://test.com/page1':'http://test.com/page1',
-                                'http://test.com/page2':'http://test.com/page2'
-        };
-
-        //act
-        const result = tools.visitedList;
-        
-        //assert
-        assert.deepEqual(result,expectedResult,'errorMsg')
-    })
-});
