@@ -16,18 +16,18 @@ function HtmlTools(httpManager, maxPages, originalUrl){
         return "img,script,link";
     };
 
-    this.visitedElement = function(allElements, element){
+    this.visitedElement = function(allElements, element){ //Is the element present in the allElements object-hashtable ?
         return typeof(allElements[element]) !== 'undefined';
     }
 
-    this.getAssetDetails = function(){
+    this.getAssetDetails = function(){ //Returns an object with all the Asset Types + it's source attribute.
         return {
            'img':'src',
            'script':'src',
            'link':'href' 
         };
     }
-    this.getAssets = function($, rootUrl){
+    this.getAssets = function($, rootUrl){ //returns all assets from the assetsTypes object on the current page
         var allAssetOptions = this.getAssetDetails();
         var assetTypes = Object.keys(allAssetOptions); //[img,script,style]
         var assetsToReturn = [];
@@ -36,8 +36,8 @@ function HtmlTools(httpManager, maxPages, originalUrl){
             var currentInstances = $(currentAssetType); //all images on current page
             var currentAttribue = allAssetOptions[currentAssetType]; // = src           
             for (var j=0;j<currentInstances.length;j++){
-                var assetSrc = $(currentInstances[j]).attr(currentAttribue);// = $(imageItem).attr('src')
-                assetSrc && assetsToReturn.push(url.resolve(rootUrl,assetSrc));
+                var assetSrc = $(currentInstances[j]).attr(currentAttribue);// = $(imageItem).attr('src') - that gives us the src to the asset
+                assetSrc && assetsToReturn.push(url.resolve(rootUrl,assetSrc)); //if the source of the asset is not null, let's push the absolute URL of that asset to the result hashtable.
             }
             
         }

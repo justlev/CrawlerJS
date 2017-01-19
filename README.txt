@@ -1,3 +1,6 @@
+Dependencies:
+Node, NPM.
+
 Installation:
 npm install
 
